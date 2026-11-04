@@ -300,6 +300,9 @@ header.top{flex-wrap:wrap}
     <h1 id="hostTitle">Facilitator view</h1>
     <p class="lede" id="hostLede"></p>
     <div class="copyrow" style="max-width:44rem;margin-bottom:1.5rem"><input id="hostPLink" type="text" readonly aria-label="Participant link"><button class="btn ghost" data-copy="hostPLink">Copy participant link</button></div>
+    <p><button class="btn ghost" id="resetAllRoomsBtn" type="button" aria-describedby="resetAllRoomsHelp">Reset all rooms</button></p>
+    <p class="small" id="resetAllRoomsHelp">Before reusing this session, reset all rooms to clear activity choices and progress. The participant link stays the same.</p>
+    <p id="resetAllRoomsStatus" role="status" aria-live="polite"></p>
     <div class="dash" id="dash"></div>
     <p class="foot">Rooms update live. A room that hasn't changed in 4 minutes while it's running is marked so you can check on it.</p>
   </section>
@@ -767,6 +770,26 @@ var CREDIT_LINE = "Created by Steffannie Roaché, MS LPC, LMHC, with Trauma Info
     if(!confirm("Reset Room " + n + "? This clears the room's progress for everyone in it.")) return;
     var b = blank(); b.updated = Date.now();
     backend.set("paceRooms", sid + "_r" + n, b);
+  });
+  $("resetAllRoomsBtn").addEventListener("click", async function(){
+    if(!confirm("Reset all " + session.rooms + " rooms? This clears activity choices, rounds, timers, and Driver assignments for everyone in this session. The participant link stays the same. Only reset between trainings.")) return;
+    var button = $("resetAllRoomsBtn"), status = $("resetAllRoomsStatus");
+    button.disabled = true;
+    status.textContent = "Resetting all rooms…";
+    try {
+      var results = await Promise.allSettled(Array.from({length:session.rooms}, function(_, i){
+        var b = blank(); b.updated = Date.now();
+        return Promise.resolve().then(function(){ return backend.set("paceRooms", sid + "_r" + (i+1), b); });
+      }));
+      var failed = results.filter(function(r){ return r.status === "rejected"; }).length;
+      status.textContent = failed
+        ? (session.rooms - failed) + " of " + session.rooms + " rooms reset. " + failed + " could not be reset. Check your connection and try again before starting."
+        : "All " + session.rooms + " rooms reset. This session is ready to reuse with the same participant link.";
+    } catch(err) {
+      status.textContent = "The reset could not finish. Check your connection and try again before starting.";
+    } finally {
+      button.disabled = false;
+    }
   });
   function openHost(){
     view = "host";
