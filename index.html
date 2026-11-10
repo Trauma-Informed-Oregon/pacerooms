@@ -60,6 +60,31 @@ fieldset{border:0;padding:0;margin:0}
 .row{display:flex;flex-wrap:wrap;gap:.75rem;align-items:center}
 
 /* picker */
+
+/* Compact sequence builder */
+.sequence-intro{display:flex;justify-content:space-between;align-items:center;gap:1rem;padding:1rem 1.3rem;margin-bottom:1rem;border-radius:16px;background:var(--teal-wash);overflow:hidden}
+.sequence-intro p{margin:.2rem 0 0;font-family:var(--display);font-size:1.15rem;font-weight:700;color:var(--ink)}
+.sequence-eyebrow{color:var(--teal);font-size:.75rem;font-weight:800;letter-spacing:.09em}
+.sequence-art{display:flex;align-items:center;gap:.25rem;flex-shrink:0}
+.sequence-art span{display:block;width:1.55rem;height:1.55rem;border:3px solid var(--teal);border-radius:50%}
+.sequence-art span:nth-child(2){background:var(--teal);border-radius:50% 50% 0 50%}
+.sequence-art span:nth-child(3){border-radius:4px;transform:rotate(45deg) scale(.75)}
+.sequence-art span:nth-child(4){background:var(--teal);border-radius:50%}
+.sequence-picker{display:grid;gap:.55rem}
+.sequence-section{background:var(--surface);border:1px solid var(--line);border-radius:14px;overflow:hidden}
+.sequence-section.open{border:2px solid var(--teal)}
+.sequence-toggle{display:grid;grid-template-columns:3rem 1fr auto;align-items:center;gap:.8rem;width:100%;min-height:68px;padding:.65rem 1rem;text-align:left;border:0;background:transparent;cursor:pointer}
+.sequence-badge{width:2.8rem;height:2.8rem;display:grid;place-items:center;border-radius:11px;background:var(--teal-wash);color:var(--teal);font-family:var(--display);font-size:1.4rem;font-weight:800}
+.sequence-label strong,.sequence-label small{display:block}.sequence-label strong{font-size:1.07rem}.sequence-label small{color:var(--soft);font-size:.88rem}
+.sequence-chevron{font-size:1.2rem;color:var(--teal)}
+.sequence-body{border-top:1px solid var(--line);padding:1rem 1.2rem 1.1rem}
+.sequence-body p{margin:.1rem 0 .8rem}.sequence-body label{font-weight:700;display:block;margin-bottom:.35rem}
+.sequence-body select{width:100%;min-height:48px;border:2px solid var(--field);border-radius:9px;padding:.65rem;background:var(--surface);color:var(--ink);font:inherit}
+.sequence-detail{margin-top:.8rem;padding:.8rem 1rem;border-radius:10px;background:var(--teal-wash)}
+.sequence-detail strong{display:block}.sequence-detail p{margin:.2rem 0}.sequence-detail details{margin-top:.45rem}.sequence-detail summary{cursor:pointer;color:var(--teal);font-weight:700}
+.sequence-next{margin-top:.8rem}.sequence-next .btn{min-height:44px;padding:.55rem 1.1rem}
+@media(max-width:450px){.sequence-art span{width:1.15rem;height:1.15rem}.sequence-toggle{grid-template-columns:2.6rem 1fr auto;padding:.6rem}.sequence-badge{width:2.5rem;height:2.5rem}}
+
 .picker-steps{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:.5rem;margin:0 0 1.5rem}.picker-steps button{border:1px solid var(--line);border-radius:10px;background:var(--surface);color:var(--ink);padding:.65rem .3rem;min-height:48px;font-weight:700;cursor:pointer}.picker-steps button[aria-current="step"]{border:2px solid var(--teal);background:var(--teal-wash)}.picker-steps button:disabled{opacity:.55;cursor:default}.picker-nav{margin:1rem 0 1.5rem}@media(max-width:500px){.picker-steps button{font-size:.8rem}}
 
 .cat{margin:0 0 1.6rem}
@@ -346,9 +371,8 @@ header.top{flex-wrap:wrap}
     <h2 id="pickTitle" tabindex="-1">Driver, pick your sequence</h2>
     <p class="lede" id="pickLede"></p>
     <p class="reminder" style="margin-bottom:1.5rem">Take part in each activity in a way that works for you. Personal sharing is optional. Need a pause? Use Take a Break.</p>
-    <nav class="picker-steps" aria-label="P.A.C.E. activity steps" id="pickerSteps"></nav>
-    <div id="picker"></div>
-    <div class="row picker-nav" id="pickerNav"><button class="btn ghost" id="pickBack" type="button">Back</button><button class="btn" id="pickNext" type="button">Continue</button></div>
+    <div class="sequence-intro"><div><span class="sequence-eyebrow">BUILD YOUR SEQUENCE</span><p>Four small choices. One shared practice.</p></div><div class="sequence-art" aria-hidden="true"><span></span><span></span><span></span><span></span></div></div>
+    <div id="picker" class="sequence-picker"></div>
     <div class="pickbar">
       <span class="status" id="pickStatus" aria-live="polite">0 of 4 chosen</span>
       <button class="btn" id="runBtn" disabled>Run this sequence</button>
@@ -664,69 +688,51 @@ var CREDIT_LINE = "Created by Steffannie Roaché, MS LPC, LMHC, with Trauma Info
     showScreen("s-" + sc);
   }
 
-  var openWhy = {}, pickStep = 0, pickerRound = null;
+  var pickStep = 0, pickerRound = null;
   function renderPick(driving){
     if(pickerRound !== state.round){ pickerRound = state.round; pickStep = 0; }
-    if(!driving){ var firstMissing = state.picks.findIndex(function(p){return p === null;}); pickStep = firstMissing < 0 ? 3 : firstMissing; }
-    var steps = $("pickerSteps"); steps.innerHTML = "";
-    CATS.forEach(function(cat, i){ var b=document.createElement("button"); b.type="button"; b.textContent=cat.key + " · " + cat.name + (state.picks[i] ? " ✓" : ""); if(i===pickStep) b.setAttribute("aria-current","step"); b.disabled=!driving; b.addEventListener("click",function(){pickStep=i;renderPick(true);}); steps.appendChild(b); });
-    $("pickerNav").hidden = !driving;
-    $("pickBack").disabled = pickStep === 0;
-    $("pickNext").hidden = pickStep === 3;
-    $("pickNext").disabled = !state.picks[pickStep];
-    $("pickNext").textContent = pickStep < 3 ? "Continue to " + CATS[pickStep+1].name : "Continue";
-    $("pickTitle").textContent = driving ? "Driver, pick your sequence" : "The Driver is picking";
+    $("pickTitle").textContent = driving ? "Build your P.A.C.E. sequence" : "Your room’s P.A.C.E. sequence";
     $("pickLede").textContent = driving
-      ? "Choose one activity below, then continue to the next part. Everyone in your room sees your picks."
-      : "Watch the picks come in. When the Driver is ready, the first activity will appear here.";
-    var wrap = $("picker");
-    var act = document.activeElement, focusKey = act && wrap.contains(act) ? act.getAttribute("data-key") : null;
+      ? "Open each section and choose one activity. Your room sees each choice."
+      : "The Driver chooses one activity from each section. You can open the sections to follow along.";
+    var wrap = $("picker"), active = document.activeElement;
+    var focusKey = active && wrap.contains(active) ? active.getAttribute("data-focus-key") : null;
     wrap.innerHTML = "";
     CATS.forEach(function(cat, ci){
-      if(ci !== pickStep) return;
-      var sec = document.createElement("div"); sec.className = "cat";
-      sec.innerHTML = '<div class="cat-head"><span class="cat-letter" aria-hidden="true">'+cat.key+'</span><div><h3 class="cat-name">'+cat.name+'</h3><p class="cat-desc">'+cat.desc+'</p></div></div>';
-      var grid = document.createElement("div"); grid.className = "cards"; grid.setAttribute("role","group"); grid.setAttribute("aria-label", cat.name + " activities");
-      (CARDS[cat.key]||[]).forEach(function(it){
-        var on = state.picks[ci] === it.id, open = !!openWhy[it.id];
-        var card = document.createElement("div"); card.className = "card" + (on ? " chosen" : "") + (driving ? "" : " readonly");
-        var pick = document.createElement("button"); pick.type = "button"; pick.className = "pick";
-        pick.setAttribute("data-key", "p:" + it.id);
-        pick.setAttribute("aria-pressed", on ? "true" : "false");
-        if(!driving) pick.setAttribute("aria-disabled", "true");
-        var meta = durText(it.secs) + (it.when ? ", " + it.when : "") + (it.inperson ? ", best in person" : "");
-        pick.innerHTML = '<span class="cname">'+esc(it.name)+'</span>'+(on ? '<span class="chosenTag">Chosen</span>' : '')+'<span class="dur">'+esc(meta)+'</span><span class="what">'+esc(it.sub)+'</span>';
-        pick.addEventListener("click", function(){
-          if(!isDriver()) return;
-          var n = clone(state); n.picks[ci] = it.id; commit(n);
-        });
-        card.appendChild(pick);
-        if(it.why){
-          var wid = "why-" + it.id;
-          var wb = document.createElement("button"); wb.type = "button"; wb.className = "whybtn";
-          wb.setAttribute("data-key", "w:" + it.id);
-          wb.setAttribute("aria-expanded", open ? "true" : "false"); wb.setAttribute("aria-controls", wid);
-          wb.innerHTML = 'Know the why<span class="sr"> for '+esc(it.name)+'</span>';
-          var wp = document.createElement("p"); wp.className = "whytext"; wp.id = wid; wp.hidden = !open; wp.textContent = it.why;
-          wb.addEventListener("click", function(){
-            openWhy[it.id] = !openWhy[it.id];
-            wb.setAttribute("aria-expanded", openWhy[it.id] ? "true" : "false"); wp.hidden = !openWhy[it.id];
-          });
-          card.appendChild(wb); card.appendChild(wp);
-        }
-        grid.appendChild(card);
-      });
-      sec.appendChild(grid); wrap.appendChild(sec);
+      var selected = (CARDS[cat.key]||[]).find(function(it){return it.id === state.picks[ci];});
+      var section = document.createElement("section"); section.className = "sequence-section" + (pickStep===ci ? " open" : "");
+      var button = document.createElement("button"); button.type="button"; button.className="sequence-toggle";
+      button.setAttribute("aria-expanded",pickStep===ci ? "true" : "false"); button.setAttribute("aria-controls","sequence-panel-"+ci);
+      button.setAttribute("data-focus-key","section-"+ci);
+      button.innerHTML='<span class="sequence-badge" aria-hidden="true">'+esc(cat.key)+'</span><span class="sequence-label"><strong>'+esc(cat.name)+'</strong><small>'+esc(selected ? "✓ " + selected.name : "Choose an activity")+'</small></span><span class="sequence-chevron" aria-hidden="true">'+(pickStep===ci ? "−" : "+")+'</span>';
+      button.addEventListener("click",function(){pickStep = pickStep===ci ? -1 : ci; renderPick(isDriver()); var b=wrap.querySelector('[data-focus-key="section-'+ci+'"]'); if(b)b.focus();});
+      section.appendChild(button);
+      var body=document.createElement("div"); body.className="sequence-body"; body.id="sequence-panel-"+ci; body.hidden=pickStep!==ci;
+      var desc=document.createElement("p"); desc.textContent=cat.desc; body.appendChild(desc);
+      if(driving){
+        var label=document.createElement("label"); label.htmlFor="sequence-choice-"+ci; label.textContent="Choose one "+cat.name+" activity"; body.appendChild(label);
+        var select=document.createElement("select"); select.id=label.htmlFor; select.setAttribute("data-focus-key","select-"+ci);
+        var initial=document.createElement("option"); initial.value=""; initial.textContent="Select an activity"; initial.disabled=true; select.appendChild(initial);
+        (CARDS[cat.key]||[]).forEach(function(it){var o=document.createElement("option");o.value=it.id;o.textContent=it.name+" · "+durText(it.secs)+(it.inperson ? " · best in person" : "");select.appendChild(o);});
+        select.value=selected ? selected.id : "";
+        select.addEventListener("change",function(){if(!isDriver())return;var n=clone(state);n.picks[ci]=select.value;commit(n);});
+        body.appendChild(select);
+      }else if(!selected){var waiting=document.createElement("p");waiting.textContent="Waiting for the Driver to choose.";body.appendChild(waiting);}
+      if(selected){
+        var detail=document.createElement("div");detail.className="sequence-detail";
+        var name=document.createElement("strong");name.textContent=selected.name+" · "+durText(selected.secs);detail.appendChild(name);
+        var sub=document.createElement("p");sub.textContent=selected.sub;detail.appendChild(sub);
+        if(selected.why){var d=document.createElement("details"),sum=document.createElement("summary"),why=document.createElement("p");sum.textContent="Why this activity?";why.textContent=selected.why;d.appendChild(sum);d.appendChild(why);detail.appendChild(d);}
+        body.appendChild(detail);
+      }
+      if(driving && selected && ci<3){var next=document.createElement("div");next.className="sequence-next";var nb=document.createElement("button");nb.type="button";nb.className="btn ghost";nb.textContent="Continue to "+CATS[ci+1].name;nb.addEventListener("click",function(){pickStep=ci+1;renderPick(true);var b=wrap.querySelector('[data-focus-key="section-'+pickStep+'"]');if(b)b.focus();});next.appendChild(nb);body.appendChild(next);}
+      section.appendChild(body);wrap.appendChild(section);
     });
-    if(focusKey){ var f = wrap.querySelector('[data-key="'+focusKey+'"]'); if(f) f.focus({preventScroll:true}); }
-    var n = state.picks.filter(function(p){ return p !== null; }).length;
-    $("pickStatus").textContent = n === 4 ? "All 4 chosen" : (n + " of 4 chosen");
-    $("runBtn").hidden = !driving || pickStep !== 3;
-    $("runBtn").disabled = n !== 4;
+    if(focusKey){var focus=wrap.querySelector('[data-focus-key="'+focusKey+'"]');if(focus)focus.focus({preventScroll:true});}
+    var count=state.picks.filter(function(p){return p !== null;}).length;
+    $("pickStatus").textContent = count===4 ? "All 4 activities chosen" : count+" of 4 activities chosen";
+    $("runBtn").hidden=!driving; $("runBtn").disabled=count!==4;
   }
-
-  $("pickBack").addEventListener("click",function(){if(pickStep>0){pickStep--;renderPick(isDriver());$("pickTitle").focus();}});
-  $("pickNext").addEventListener("click",function(){if(isDriver() && state.picks[pickStep] && pickStep<3){pickStep++;renderPick(true);$("pickTitle").focus();}});
 
   function renderLead(driving){
     var cur = curItem(); if(!cur.it) return;
