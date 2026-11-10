@@ -60,6 +60,8 @@ fieldset{border:0;padding:0;margin:0}
 .row{display:flex;flex-wrap:wrap;gap:.75rem;align-items:center}
 
 /* picker */
+.picker-steps{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:.5rem;margin:0 0 1.5rem}.picker-steps button{border:1px solid var(--line);border-radius:10px;background:var(--surface);color:var(--ink);padding:.65rem .3rem;min-height:48px;font-weight:700;cursor:pointer}.picker-steps button[aria-current="step"]{border:2px solid var(--teal);background:var(--teal-wash)}.picker-steps button:disabled{opacity:.55;cursor:default}.picker-nav{margin:1rem 0 1.5rem}@media(max-width:500px){.picker-steps button{font-size:.8rem}}
+
 .cat{margin:0 0 1.6rem}
 .cat-head{display:flex;align-items:baseline;gap:.85rem;margin-bottom:.7rem}
 .cat-letter{font-family:var(--display);font-weight:800;font-size:2.4rem;line-height:1;color:var(--teal)}
@@ -341,10 +343,12 @@ header.top{flex-wrap:wrap}
 
   <!-- PICK -->
   <section class="screen" id="s-pick" hidden>
-    <h2 id="pickTitle">Driver, pick your sequence</h2>
+    <h2 id="pickTitle" tabindex="-1">Driver, pick your sequence</h2>
     <p class="lede" id="pickLede"></p>
     <p class="reminder" style="margin-bottom:1.5rem">Take part in each activity in a way that works for you. Personal sharing is optional. Need a pause? Use Take a Break.</p>
+    <nav class="picker-steps" aria-label="P.A.C.E. activity steps" id="pickerSteps"></nav>
     <div id="picker"></div>
+    <div class="row picker-nav" id="pickerNav"><button class="btn ghost" id="pickBack" type="button">Back</button><button class="btn" id="pickNext" type="button">Continue</button></div>
     <div class="pickbar">
       <span class="status" id="pickStatus" aria-live="polite">0 of 4 chosen</span>
       <button class="btn" id="runBtn" disabled>Run this sequence</button>
@@ -660,16 +664,26 @@ var CREDIT_LINE = "Created by Steffannie Roaché, MS LPC, LMHC, with Trauma Info
     showScreen("s-" + sc);
   }
 
-  var openWhy = {};
+  var openWhy = {}, pickStep = 0, pickerRound = null;
   function renderPick(driving){
+    if(pickerRound !== state.round){ pickerRound = state.round; pickStep = 0; }
+    if(!driving){ var firstMissing = state.picks.findIndex(function(p){return p === null;}); pickStep = firstMissing < 0 ? 3 : firstMissing; }
+    var steps = $("pickerSteps"); steps.innerHTML = "";
+    CATS.forEach(function(cat, i){ var b=document.createElement("button"); b.type="button"; b.textContent=cat.key + " · " + cat.name + (state.picks[i] ? " ✓" : ""); if(i===pickStep) b.setAttribute("aria-current","step"); b.disabled=!driving; b.addEventListener("click",function(){pickStep=i;renderPick(true);}); steps.appendChild(b); });
+    $("pickerNav").hidden = !driving;
+    $("pickBack").disabled = pickStep === 0;
+    $("pickNext").hidden = pickStep === 3;
+    $("pickNext").disabled = !state.picks[pickStep];
+    $("pickNext").textContent = pickStep < 3 ? "Continue to " + CATS[pickStep+1].name : "Continue";
     $("pickTitle").textContent = driving ? "Driver, pick your sequence" : "The Driver is picking";
     $("pickLede").textContent = driving
-      ? "Choose one activity from each part. Everyone in your room sees your picks."
+      ? "Choose one activity below, then continue to the next part. Everyone in your room sees your picks."
       : "Watch the picks come in. When the Driver is ready, the first activity will appear here.";
     var wrap = $("picker");
     var act = document.activeElement, focusKey = act && wrap.contains(act) ? act.getAttribute("data-key") : null;
     wrap.innerHTML = "";
     CATS.forEach(function(cat, ci){
+      if(ci !== pickStep) return;
       var sec = document.createElement("div"); sec.className = "cat";
       sec.innerHTML = '<div class="cat-head"><span class="cat-letter" aria-hidden="true">'+cat.key+'</span><div><h3 class="cat-name">'+cat.name+'</h3><p class="cat-desc">'+cat.desc+'</p></div></div>';
       var grid = document.createElement("div"); grid.className = "cards"; grid.setAttribute("role","group"); grid.setAttribute("aria-label", cat.name + " activities");
@@ -707,9 +721,12 @@ var CREDIT_LINE = "Created by Steffannie Roaché, MS LPC, LMHC, with Trauma Info
     if(focusKey){ var f = wrap.querySelector('[data-key="'+focusKey+'"]'); if(f) f.focus({preventScroll:true}); }
     var n = state.picks.filter(function(p){ return p !== null; }).length;
     $("pickStatus").textContent = n === 4 ? "All 4 chosen" : (n + " of 4 chosen");
-    $("runBtn").hidden = !driving;
+    $("runBtn").hidden = !driving || pickStep !== 3;
     $("runBtn").disabled = n !== 4;
   }
+
+  $("pickBack").addEventListener("click",function(){if(pickStep>0){pickStep--;renderPick(isDriver());$("pickTitle").focus();}});
+  $("pickNext").addEventListener("click",function(){if(isDriver() && state.picks[pickStep] && pickStep<3){pickStep++;renderPick(true);$("pickTitle").focus();}});
 
   function renderLead(driving){
     var cur = curItem(); if(!cur.it) return;
